@@ -6,10 +6,16 @@ class FFDevEnvironmentValues {
   static const String currentEnvironment =
       String.fromEnvironment('ENVIRONMENT', defaultValue: 'Production');
 
-  static String get environmentValuesPath =>
-      currentEnvironment == 'Test'
-          ? 'assets/environment_values/environment_test.json'
-          : 'assets/environment_values/environment.json';
+  static String get environmentValuesPath {
+    switch (currentEnvironment) {
+      case 'Sandbox':
+        return 'assets/environment_values/environment_sandbox.json';
+      case 'Test':
+        return 'assets/environment_values/environment_test.json';
+      default:
+        return 'assets/environment_values/environment.json';
+    }
+  }
 
   static final FFDevEnvironmentValues _instance =
       FFDevEnvironmentValues._internal();
