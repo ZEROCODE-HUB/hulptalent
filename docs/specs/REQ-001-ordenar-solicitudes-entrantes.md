@@ -3,8 +3,8 @@
 | Campo            | Valor                                             |
 |------------------|---------------------------------------------------|
 | **ID**           | REQ-001                                            |
-| **Versión**      | v1.0.0                                             |
-| **Estado**       | 🟡 Propuesta — pendiente de validación             |
+| **Versión**      | v1.0.1                                             |
+| **Estado**       | 🟢 Validada e implementada                          |
 | **Tipo**         | Mejora de UI / ordenamiento de lista              |
 | **Componente**   | `lib/pages/solicitudes/solicitudes_widget.dart`   |
 | **Backend**      | Supabase — tabla `solicitudes_servicio`           |
@@ -98,14 +98,30 @@ final serviciosent = containerSolicitudesServicioRowList
 - [ ] No hay regresiones en otras secciones de la pantalla.
 - [ ] La app compila con Flutter 3.35.0 / Dart 3.9.0.
 
-## 9. Preguntas abiertas
+## 9. Preguntas abiertas (resueltas)
 
-- ¿Confirmas el ordenamiento **en cliente** (sección 4) en lugar de a nivel de stream?
-- ¿El desempate por `hora` es correcto, o basta con ordenar solo por `fecha`?
+- ✅ Ordenamiento **en cliente** (Opción A), confirmado por el responsable.
+- ✅ Se ordena por `fecha` y, como desempate, por `hora` de la reserva, ambos ascendente.
+
+## 10. Detalle de implementación (v1.0.1)
+
+Archivo modificado: `lib/pages/solicitudes/solicitudes_widget.dart` (sección "Solicitudes
+Entrantes"). Se reemplazó el filtrado simple por filtrado + `..sort` con dos criterios:
+
+- Primario: `fecha` (`DateTime`) ascendente, con `compareTo`.
+- Secundario (desempate): `hora` (`PostgresTime`) ascendente. Como `PostgresTime` expone
+  `DateTime? time`, la hora se compara por **segundos del día**
+  (`hour*3600 + minute*60 + second`), de forma null-safe (si alguna `time` es `null`, se
+  consideran iguales y no se altera su orden relativo).
+
+No se modificó el `stream` de Supabase ni ninguna otra sección. El reordenamiento se re-aplica
+automáticamente en cada emisión del stream en tiempo real.
 
 ---
 
 ## Changelog
 
+- **v1.0.1** — Validación del spec (Opción A confirmada) e implementación en
+  `solicitudes_widget.dart`. Se documenta el manejo de `PostgresTime` por segundos del día.
 - **v1.0.0** — Creación inicial del spec para REQ-001 (ordenar "Solicitudes Entrantes" por
   `fecha` + `hora` ascendente, ordenamiento en cliente). Estado: pendiente de validación.

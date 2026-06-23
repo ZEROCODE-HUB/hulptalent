@@ -710,7 +710,20 @@ class _SolicitudesWidgetState extends State<SolicitudesWidget> {
                                                                               Builder(
                                                                             builder:
                                                                                 (context) {
-                                                                              final serviciosent = containerSolicitudesServicioRowList.where((e) => e.estado == 'entrantes').toList();
+                                                                              // REQ-001: orden ascendente por fecha y hora de la reserva.
+                                                                              final serviciosent = containerSolicitudesServicioRowList.where((e) => e.estado == 'entrantes').toList()
+                                                                                ..sort((a, b) {
+                                                                                  final porFecha = a.fecha.compareTo(b.fecha);
+                                                                                  if (porFecha != 0) {
+                                                                                    return porFecha;
+                                                                                  }
+                                                                                  final horaA = a.hora.time;
+                                                                                  final horaB = b.hora.time;
+                                                                                  if (horaA == null || horaB == null) {
+                                                                                    return 0;
+                                                                                  }
+                                                                                  return (horaA.hour * 3600 + horaA.minute * 60 + horaA.second).compareTo(horaB.hour * 3600 + horaB.minute * 60 + horaB.second);
+                                                                                });
                                                                               if (serviciosent.isEmpty) {
                                                                                 return ListaVaciaWidget(
                                                                                   texto: 'No hay solicitudes entrantes',
