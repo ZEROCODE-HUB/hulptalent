@@ -5,6 +5,7 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import 'dart:async';
 import 'dart:ui';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/custom_functions.dart' as functions;
@@ -31,16 +32,81 @@ class _DesempenioPageWidgetState extends State<DesempenioPageWidget> {
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Ingreso neto de la semana actual, calculado desde `solicitudes_servicio`
+  // con el mismo criterio que el gráfico (precio_base + precio_adicionales,
+  // neteado con calcularIngresoProveedor) para que la tarjeta y el gráfico
+  // muestren cifras coherentes.
+  double? _ingresosSemanaActual;
+  StreamSubscription<List<Map<String, dynamic>>>? _solicitudesSub;
+  bool _primeraEmisionStream = true;
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => DesempenioPageModel());
 
+    _cargarIngresosSemana();
+    // Tiempo real: recalcula al cambiar las solicitudes del proveedor
+    // (p. ej. al finalizar un servicio). Realtime no emite sobre vistas, por
+    // eso se escucha la tabla base.
+    _solicitudesSub = SupaFlow.client
+        .from('solicitudes_servicio')
+        .stream(primaryKey: ['id'])
+        .eq('profesional_id', currentUserUid)
+        .listen((_) {
+      if (_primeraEmisionStream) {
+        _primeraEmisionStream = false;
+        return;
+      }
+      if (mounted) {
+        _cargarIngresosSemana();
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+  }
+
+  Future<void> _cargarIngresosSemana() async {
+    try {
+      final now = DateTime.now();
+      final inicioMes = DateTime(now.year, now.month, 1);
+      // Semana del mes que contiene hoy (0-based), igual que el gráfico.
+      final semanaActual = (now.day - 1) ~/ 7;
+      final inicioSemana = inicioMes.add(Duration(days: semanaActual * 7));
+      final finSemana = inicioSemana.add(Duration(days: 6));
+      final fechaInicio = inicioSemana.toIso8601String().substring(0, 10);
+      final fechaFin = finSemana.toIso8601String().substring(0, 10);
+
+      final response = await SupaFlow.client
+          .from('solicitudes_servicio')
+          .select('precio_base, precio_adicionales, precio')
+          .eq('profesional_id', currentUserUid)
+          .eq('estado', 'finalizadas')
+          .gte('fecha', fechaInicio)
+          .lte('fecha', fechaFin);
+
+      double total = 0;
+      for (var item in response) {
+        // Ingreso del proveedor = mano de obra NETA (precio_base) + materiales
+        // completos (precio_adicionales son reembolso, sin comisión).
+        final base = double.tryParse(
+                (item['precio_base'] ?? item['precio'] ?? 0).toString()) ??
+            0;
+        final adicionales =
+            double.tryParse((item['precio_adicionales'] ?? 0).toString()) ?? 0;
+        total += functions.calcularIngresoProveedor(base) + adicionales;
+      }
+      if (mounted) {
+        safeSetState(() => _ingresosSemanaActual = total);
+      }
+    } catch (e) {
+      // Silencioso: ante un fallo se conserva el último valor mostrado.
+    }
   }
 
   @override
   void dispose() {
+    _solicitudesSub?.cancel();
     _model.dispose();
 
     super.dispose();
@@ -211,13 +277,8 @@ class _DesempenioPageWidgetState extends State<DesempenioPageWidget> {
                                                     text:
                                                         valueOrDefault<String>(
                                                       formatNumber(
-                                                        functions
-                                                            .calcularIngresoProveedorAgregado(
-                                                          rowVwMetricasProveedoresRow
-                                                              ?.ingresosSemanales,
-                                                          rowVwMetricasProveedoresRow
-                                                              ?.serviciosSemanaActual,
-                                                        ),
+                                                        _ingresosSemanaActual ??
+                                                            0,
                                                         formatType:
                                                             FormatType.decimal,
                                                         decimalType: DecimalType
@@ -327,9 +388,15 @@ class _DesempenioPageWidgetState extends State<DesempenioPageWidget> {
                                                                       .bodyMedium
                                                                       .fontStyle,
                                                                 ),
-                                                                color: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .success,
+                                                                color: (rowVwMetricasProveedoresRow?.porcentajeVsSemanaAnterior ??
+                                                                            0) <
+                                                                        0
+                                                                    ? FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .error
+                                                                    : FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .success,
                                                                 letterSpacing:
                                                                     0.0,
                                                                 fontWeight:
@@ -562,7 +629,7 @@ class _DesempenioPageWidgetState extends State<DesempenioPageWidget> {
                                                           text: valueOrDefault<
                                                               String>(
                                                             rowVwMetricasProveedoresRow
-                                                                ?.porcentajeVsSemanaAnterior
+                                                                ?.porcentajeServiciosVsTrimestreAnterior
                                                                 ?.toString(),
                                                             '0',
                                                           ),
@@ -581,9 +648,15 @@ class _DesempenioPageWidgetState extends State<DesempenioPageWidget> {
                                                                       .bodyMedium
                                                                       .fontStyle,
                                                                 ),
-                                                                color: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .success,
+                                                                color: (rowVwMetricasProveedoresRow?.porcentajeServiciosVsTrimestreAnterior ??
+                                                                            0) <
+                                                                        0
+                                                                    ? FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .error
+                                                                    : FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .success,
                                                                 letterSpacing:
                                                                     0.0,
                                                                 fontWeight:

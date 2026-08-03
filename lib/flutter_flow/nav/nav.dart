@@ -142,6 +142,13 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           ),
         ),
         FFRoute(
+          name: RestablecerConCodigoWidget.routeName,
+          path: RestablecerConCodigoWidget.routePath,
+          builder: (context, params) => RestablecerConCodigoWidget(
+            email: params.getParam('email', ParamType.String),
+          ),
+        ),
+        FFRoute(
           name: LoginWidget.routeName,
           path: LoginWidget.routePath,
           builder: (context, params) => LoginWidget(),

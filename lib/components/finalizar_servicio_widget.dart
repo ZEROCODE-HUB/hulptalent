@@ -266,8 +266,12 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                 ).toString(),
                                 ((valueOrDefault<double>(
                                               _model.validacion?.firstOrNull
-                                                  ?.precio,
-                                              0.0,
+                                                  ?.precioBase,
+                                              valueOrDefault<double>(
+                                                _model.validacion?.firstOrNull
+                                                    ?.precio,
+                                                0.0,
+                                              ),
                                             ) +
                                             valueOrDefault<double>(
                                               _model.validacion?.firstOrNull
@@ -279,7 +283,7 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                 'COP',
                                 _model.usuarioServicio2!.firstOrNull!
                                     .correoElectronico!,
-                                _model.validacion!.firstOrNull!.id,
+                                '${_model.validacion!.firstOrNull!.id}-${DateTime.now().millisecondsSinceEpoch}',
                                 FFDevEnvironmentValues().integrityKey,
                                 FFDevEnvironmentValues().isProduction,
                               );
@@ -325,8 +329,12 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                         .usuarioServicio2?.firstOrNull?.id,
                                     'monto': valueOrDefault<double>(
                                           _model.validacion?.firstOrNull
-                                              ?.precio,
-                                          0.0,
+                                              ?.precioBase,
+                                          valueOrDefault<double>(
+                                            _model.validacion?.firstOrNull
+                                                ?.precio,
+                                            0.0,
+                                          ),
                                         ) +
                                         valueOrDefault<double>(
                                           _model.validacion?.firstOrNull
@@ -339,7 +347,19 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                         getCurrentTimestamp),
                                     'fecha_registro': supaSerialize<DateTime>(
                                         getCurrentTimestamp),
-                                    'metodo_pago': 'Bancolombia',
+                                    'metodo_pago': _model
+                                            .resultadosUsuarioMetodoPago
+                                            ?.firstOrNull
+                                            ?.tipo ??
+                                        'Bancolombia',
+                                    'numero_transaccion': getJsonField(
+                                      _model.pago3,
+                                      r'''$.transactionId''',
+                                    )?.toString(),
+                                    'referencia_externa': getJsonField(
+                                      _model.pago3,
+                                      r'''$.reference''',
+                                    )?.toString(),
                                   });
                                   _model.apNotificacion2 =
                                       await SendNotificationUserHulpCall.call(
@@ -503,6 +523,34 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                               ),
                             );
                             _shouldSetState = true;
+                            if (_model.tarjeta == null ||
+                                _model.tarjeta!.isEmpty) {
+                              await SolicitudesServicioTable().update(
+                                data: {
+                                  'profesional_id': null,
+                                },
+                                matchingRows: (rows) => rows.eqOrNull(
+                                  'id',
+                                  widget!.idservicio,
+                                ),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'El cliente no tiene un método de pago registrado.',
+                                    style: TextStyle(
+                                      color: FlutterFlowTheme.of(context)
+                                          .primaryBackground,
+                                    ),
+                                  ),
+                                  duration: Duration(milliseconds: 4000),
+                                  backgroundColor:
+                                      FlutterFlowTheme.of(context).error,
+                                ),
+                              );
+                              if (_shouldSetState) safeSetState(() {});
+                              return;
+                            }
                             _model.usuarioServicio =
                                 await UsuariosTable().queryRows(
                               queryFn: (q) => q.eqOrNull(
@@ -532,8 +580,12 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                 ).toString(),
                                 ((valueOrDefault<double>(
                                               _model.validacion?.firstOrNull
-                                                  ?.precio,
-                                              0.0,
+                                                  ?.precioBase,
+                                              valueOrDefault<double>(
+                                                _model.validacion?.firstOrNull
+                                                    ?.precio,
+                                                0.0,
+                                              ),
                                             ) +
                                             valueOrDefault<double>(
                                               _model.validacion?.firstOrNull
@@ -545,7 +597,7 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                 'COP',
                                 _model.usuarioServicio!.firstOrNull!
                                     .correoElectronico!,
-                                _model.validacion!.firstOrNull!.id,
+                                '${_model.validacion!.firstOrNull!.id}-${DateTime.now().millisecondsSinceEpoch}',
                                 FFDevEnvironmentValues().integrityKey,
                                 FFDevEnvironmentValues().isProduction,
                               );
@@ -591,8 +643,12 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                         _model.usuarioServicio?.firstOrNull?.id,
                                     'monto': valueOrDefault<double>(
                                           _model.validacion?.firstOrNull
-                                              ?.precio,
-                                          0.0,
+                                              ?.precioBase,
+                                          valueOrDefault<double>(
+                                            _model.validacion?.firstOrNull
+                                                ?.precio,
+                                            0.0,
+                                          ),
                                         ) +
                                         valueOrDefault<double>(
                                           _model.validacion?.firstOrNull
@@ -606,6 +662,14 @@ class _FinalizarServicioWidgetState extends State<FinalizarServicioWidget> {
                                     'fecha_registro': supaSerialize<DateTime>(
                                         getCurrentTimestamp),
                                     'metodo_pago': 'Tarjeta',
+                                    'numero_transaccion': getJsonField(
+                                      _model.pago,
+                                      r'''$.transactionId''',
+                                    )?.toString(),
+                                    'referencia_externa': getJsonField(
+                                      _model.pago,
+                                      r'''$.reference''',
+                                    )?.toString(),
                                   });
                                   _model.apNotificacion =
                                       await SendNotificationUserHulpCall.call(

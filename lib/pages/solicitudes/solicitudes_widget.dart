@@ -1224,7 +1224,20 @@ class _SolicitudesWidgetState extends State<SolicitudesWidget> {
                                                                                 (e.estado == 'iniciadas') ||
                                                                                 (e.estado == 'en camino') ||
                                                                                 (e.estado == 'en proceso'))
-                                                                            .toList();
+                                                                            .toList()
+                                                                          // Orden descendente por fecha y hora del servicio (el más futuro primero).
+                                                                          ..sort((a, b) {
+                                                                            final porFecha = b.fecha.compareTo(a.fecha);
+                                                                            if (porFecha != 0) {
+                                                                              return porFecha;
+                                                                            }
+                                                                            final horaA = a.hora.time;
+                                                                            final horaB = b.hora.time;
+                                                                            if (horaA == null || horaB == null) {
+                                                                              return 0;
+                                                                            }
+                                                                            return (horaB.hour * 3600 + horaB.minute * 60 + horaB.second).compareTo(horaA.hour * 3600 + horaA.minute * 60 + horaA.second);
+                                                                          });
                                                                         if (solicitudesAceptadasx
                                                                             .isEmpty) {
                                                                           return ListaVaciaWidget(
@@ -2207,7 +2220,20 @@ class _SolicitudesWidgetState extends State<SolicitudesWidget> {
                                                                           builder:
                                                                               (context) {
                                                                             final serviciosFinalizados =
-                                                                                containerSolicitudesServicioRowList.where((e) => (e.estado == 'finalizadas') || (e.estado == 'canceladas')).toList();
+                                                                                containerSolicitudesServicioRowList.where((e) => (e.estado == 'finalizadas') || (e.estado == 'canceladas')).toList()
+                                                                                  // Orden descendente por fecha y hora del servicio (el más reciente primero).
+                                                                                  ..sort((a, b) {
+                                                                                    final porFecha = b.fecha.compareTo(a.fecha);
+                                                                                    if (porFecha != 0) {
+                                                                                      return porFecha;
+                                                                                    }
+                                                                                    final horaA = a.hora.time;
+                                                                                    final horaB = b.hora.time;
+                                                                                    if (horaA == null || horaB == null) {
+                                                                                      return 0;
+                                                                                    }
+                                                                                    return (horaB.hour * 3600 + horaB.minute * 60 + horaB.second).compareTo(horaA.hour * 3600 + horaA.minute * 60 + horaA.second);
+                                                                                  });
                                                                             if (serviciosFinalizados.isEmpty) {
                                                                               return ListaVaciaWidget(
                                                                                 texto: 'No hay solicitudes finalizadas',

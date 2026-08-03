@@ -1,4 +1,4 @@
-import '/auth/supabase_auth/auth_util.dart';
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -6,7 +6,6 @@ import '/flutter_flow/flutter_flow_widgets.dart';
 import 'dart:ui';
 import '/custom_code/actions/index.dart' as actions;
 import '/index.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -259,30 +258,41 @@ class _RecuperarcontraseaWidgetState extends State<RecuperarcontraseaWidget> {
                           _model.textFieldEmailTextController.text,
                         );
                         if (_model.emailExist == true) {
-                          if (_model.textFieldEmailTextController.text.isEmpty) {
+                          final email = _model
+                              .textFieldEmailTextController.text
+                              .trim();
+                          if (email.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Email required!')),
+                              SnackBar(content: Text('Ingresa tu correo')),
                             );
                             return;
                           }
-
-                          // Deep link para app movil (Android + iOS),
-                          // URL HTTPS para navegador web.
-                          final redirectUrl = kIsWeb
-                              ? "https://hulp-proveedores.flutterflow.app/restablecercontrasea"
-                              : "talentohulp://talentohulp.com/restablecercontrasea";
-
-                          await authManager.resetPassword(
-                            email: _model.textFieldEmailTextController.text,
-                            context: context,
-                            redirectTo: redirectUrl,
-                          );
+                          try {
+                            await SupaFlow.client.auth
+                                .resetPasswordForEmail(email);
+                          } on AuthException catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text(
+                                      'No se pudo enviar el código: ${e.message}')),
+                            );
+                            safeSetState(() {});
+                            return;
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text(
+                                      'No se pudo enviar el código. Intenta de nuevo.')),
+                            );
+                            safeSetState(() {});
+                            return;
+                          }
 
                           context.pushNamed(
-                            Restablecercontrasea3Widget.routeName,
+                            RestablecerConCodigoWidget.routeName,
                             queryParameters: {
                               'email': serializeParam(
-                                _model.textFieldEmailTextController.text,
+                                email,
                                 ParamType.String,
                               ),
                             }.withoutNulls,

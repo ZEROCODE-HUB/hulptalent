@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 
 // Modelos de datos
@@ -51,6 +52,8 @@ class DashboardProveedor extends StatefulWidget {
 class _DashboardProveedorState extends State<DashboardProveedor> {
   bool isLoading = true;
   String? error;
+  StreamSubscription<List<Map<String, dynamic>>>? _solicitudesSub;
+  bool _primeraEmisionStream = true;
 
   // Datos del dashboard
   List<DatosPeriodo> serviciosPorSemana = [];
@@ -74,6 +77,28 @@ class _DashboardProveedorState extends State<DashboardProveedor> {
   void initState() {
     super.initState();
     _cargarDatos();
+    // Tiempo real: recarga las métricas cuando cambian las solicitudes del
+    // proveedor (p. ej. al finalizar un servicio). Supabase Realtime no emite
+    // sobre vistas, por eso se escucha la tabla base `solicitudes_servicio`.
+    _solicitudesSub = SupaFlow.client
+        .from('solicitudes_servicio')
+        .stream(primaryKey: ['id'])
+        .eq('profesional_id', widget.proveedorId)
+        .listen((_) {
+      if (_primeraEmisionStream) {
+        _primeraEmisionStream = false;
+        return;
+      }
+      if (mounted) {
+        _cargarDatos();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _solicitudesSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _cargarDatos() async {
@@ -171,7 +196,7 @@ class _DashboardProveedorState extends State<DashboardProveedor> {
 
         final response = await SupaFlow.client
             .from('solicitudes_servicio')
-            .select('precio')
+            .select('precio_base, precio_adicionales, precio')
             .eq('profesional_id', widget.proveedorId)
             .eq('estado', 'finalizadas')
             .gte('fecha', fechaInicio)
@@ -183,11 +208,18 @@ class _DashboardProveedorState extends State<DashboardProveedor> {
         double total = 0;
         if (response != null) {
           for (var item in response) {
-            final precio = item['precio'];
-            if (precio != null) {
-              final montoBruto = double.tryParse(precio.toString()) ?? 0;
-              total += calcularIngresoProveedor(montoBruto);
-            }
+            // Ingreso del proveedor = mano de obra NETA (precio_base, con
+            // comisión Wompi 2,65% + $700 + IVA 19% + 25% de Hulp) MÁS los
+            // materiales completos (precio_adicionales son reembolso: el
+            // proveedor ya los pagó, no llevan comisión). `precio` es fallback
+            // legacy si no hay precio_base.
+            final base = double.tryParse(
+                    (item['precio_base'] ?? item['precio'] ?? 0).toString()) ??
+                0;
+            final adicionales = double.tryParse(
+                    (item['precio_adicionales'] ?? 0).toString()) ??
+                0;
+            total += calcularIngresoProveedor(base) + adicionales;
           }
         }
 

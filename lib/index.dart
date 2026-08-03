@@ -13,6 +13,8 @@ export '/pages/recuperarcontrasea/recuperarcontrasea_widget.dart'
     show RecuperarcontraseaWidget;
 export '/pages/restablecercontrasea3/restablecercontrasea3_widget.dart'
     show Restablecercontrasea3Widget;
+export '/pages/restablecer_con_codigo/restablecer_con_codigo_widget.dart'
+    show RestablecerConCodigoWidget;
 export '/registro/login/login_widget.dart' show LoginWidget;
 export '/pages/solicitudes/solicitudes_widget.dart' show SolicitudesWidget;
 export '/pages/proveedores/terminosycondiciones/terminosycondiciones_widget.dart'
