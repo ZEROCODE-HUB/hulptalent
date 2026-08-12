@@ -624,16 +624,20 @@ class _Registro6WidgetState extends State<Registro6Widget> {
                     onPressed: (_model.checkboxValue == false)
                         ? null
                         : () async {
-                            GoRouter.of(context).prepareAuthEvent();
+                            // En el registro con Apple la sesión de Supabase ya
+                            // existe: solo falta crear el perfil.
+                            if (!FFAppState().registroExterno) {
+                              GoRouter.of(context).prepareAuthEvent();
 
-                            final user =
-                                await authManager.createAccountWithEmail(
-                              context,
-                              FFAppState().registro.correo,
-                              FFAppState().registro.contrasena,
-                            );
-                            if (user == null) {
-                              return;
+                              final user =
+                                  await authManager.createAccountWithEmail(
+                                context,
+                                FFAppState().registro.correo,
+                                FFAppState().registro.contrasena,
+                              );
+                              if (user == null) {
+                                return;
+                              }
                             }
 
                             await UsuariosTable().insert({
@@ -660,7 +664,7 @@ class _Registro6WidgetState extends State<Registro6Widget> {
                                   FFAppState().registro.tributario,
                               'verificado': 'pendiente',
                               'ciudad': FFAppState().registro.ciudad,
-                              'usuario_externo': false,
+                              'usuario_externo': FFAppState().registroExterno,
                             });
                             await Future.wait([
                               Future(() async {
@@ -778,6 +782,8 @@ class _Registro6WidgetState extends State<Registro6Widget> {
                                 );
                               }),
                             ]);
+
+                            FFAppState().registroExterno = false;
 
                             context.pushNamedAuth(
                                 SplashLoginWidget.routeName, context.mounted);

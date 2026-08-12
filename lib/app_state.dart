@@ -56,6 +56,16 @@ class FFAppState extends ChangeNotifier {
     updateFn(_registro);
   }
 
+  /// Marca que el registro en curso proviene de un proveedor externo (Apple):
+  /// la sesión de Supabase ya existe, así que se omite el paso de contraseña y
+  /// no se vuelve a crear la cuenta al finalizar el asistente.
+  /// No se persiste a propósito: debe morir si la app se cierra a medias.
+  bool _registroExterno = false;
+  bool get registroExterno => _registroExterno;
+  set registroExterno(bool value) {
+    _registroExterno = value;
+  }
+
   List<String> _idServiciosList = [];
   List<String> get idServiciosList => _idServiciosList;
   set idServiciosList(List<String> value) {

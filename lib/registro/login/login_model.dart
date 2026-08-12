@@ -56,6 +56,10 @@ class LoginModel extends FlutterFlowModel<LoginWidget> {
 
   // Stores action output result for [Backend Call - Query Rows] action in Button widget.
   List<UsuariosRow>? userquery;
+  // Stores action output result for [Backend Call - Query Rows] action in Apple sign in widget.
+  List<UsuariosRow>? appleUserQuery;
+  // Bloquea el botón de Apple mientras la hoja nativa está abierta.
+  bool appleLoading = false;
 
   @override
   void initState(BuildContext context) {

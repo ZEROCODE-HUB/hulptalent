@@ -19,6 +19,9 @@ class DesactivarCuentaModel extends FlutterFlowModel<DesactivarCuentaWidget> {
   // Model for men component.
   late MenModel menModel;
 
+  // Bloquea el botón mientras corre el borrado.
+  bool eliminando = false;
+
   @override
   void initState(BuildContext context) {
     menModel = createModel(context, () => MenModel());

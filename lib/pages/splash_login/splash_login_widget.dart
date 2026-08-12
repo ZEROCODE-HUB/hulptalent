@@ -113,6 +113,31 @@ class _SplashLoginWidgetState extends State<SplashLoginWidget> {
           );
 
           return;
+        } else if (_model.miususario?.isEmpty ?? true) {
+          // Sesión válida sin perfil: es una cuenta de proveedor externo
+          // (Apple) que no terminó el registro. Se retoma el asistente en vez
+          // de cerrar la sesión.
+          FFAppState().registroExterno = true;
+          FFAppState().updateRegistroStruct((registro) {
+            final metadata =
+                SupaFlow.client.auth.currentUser?.userMetadata ?? const {};
+            if (registro.nombres.isEmpty) {
+              registro.nombres = metadata['given_name']?.toString() ?? '';
+            }
+            if (registro.apellidos.isEmpty) {
+              registro.apellidos = metadata['family_name']?.toString() ?? '';
+            }
+            if (registro.correo.isEmpty &&
+                !currentUserEmail
+                    .toLowerCase()
+                    .endsWith('@privaterelay.appleid.com')) {
+              registro.correo = currentUserEmail;
+            }
+          });
+
+          context.goNamedAuth(Registro1Widget.routeName, context.mounted);
+
+          return;
         } else {
           GoRouter.of(context).prepareAuthEvent();
           await authManager.signOut();

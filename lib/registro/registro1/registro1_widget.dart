@@ -1604,9 +1604,20 @@ class _Registro1WidgetState extends State<Registro1Widget> {
                                 focusNode: _model.inputEmailFocusNode,
                                 autofocus: false,
                                 obscureText: false,
+                                // En el registro con Apple el correo lo fija la
+                                // sesión y no puede divergir. Solo queda
+                                // editable si Apple lo ocultó tras un alias.
+                                readOnly: FFAppState().registroExterno &&
+                                    _model.inputEmailTextController.text
+                                        .isNotEmpty,
                                 decoration: InputDecoration(
                                   isDense: true,
                                   labelText: 'Correo *',
+                                  helperText: FFAppState().registroExterno &&
+                                          _model.inputEmailTextController.text
+                                              .isEmpty
+                                      ? 'Necesitamos un correo real para verificar tu perfil'
+                                      : null,
                                   labelStyle: FlutterFlowTheme.of(context)
                                       .labelMedium
                                       .override(
@@ -2206,6 +2217,23 @@ class _Registro1WidgetState extends State<Registro1Widget> {
                                 }
 
                                 context.pushNamed(Registro2Widget.routeName);
+                              } else {
+                                ScaffoldMessenger.of(context)
+                                    .hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Ya existe una cuenta con este correo',
+                                      style: TextStyle(
+                                        color: FlutterFlowTheme.of(context)
+                                            .primaryBackground,
+                                      ),
+                                    ),
+                                    duration: Duration(milliseconds: 4000),
+                                    backgroundColor:
+                                        FlutterFlowTheme.of(context).error,
+                                  ),
+                                );
                               }
 
                               safeSetState(() {});

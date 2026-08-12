@@ -797,7 +797,11 @@ class _Registro3WidgetState extends State<Registro3Widget> {
                     );
                     safeSetState(() {});
 
-                    context.pushNamed(Registro4Widget.routeName);
+                    // En el registro con Apple la sesión ya existe: no hay que
+                    // pedir contraseña, así que se omite Registro4.
+                    context.pushNamed(FFAppState().registroExterno
+                        ? Registro5Widget.routeName
+                        : Registro4Widget.routeName);
                   },
                   text: 'Siguiente',
                   options: FFButtonOptions(

@@ -114,6 +114,91 @@ class _LoginWidgetState extends State<LoginWidget> {
     super.dispose();
   }
 
+  void _showLoginError(String mensaje) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          mensaje,
+          style: TextStyle(
+            color: FlutterFlowTheme.of(context).primaryBackground,
+          ),
+        ),
+        duration: Duration(milliseconds: 4000),
+        backgroundColor: FlutterFlowTheme.of(context).error,
+      ),
+    );
+  }
+
+  /// Inicia sesión con Apple. Si la cuenta ya tiene perfil de proveedor entra
+  /// como siempre; si no existe todavía, arranca el asistente de registro con
+  /// los datos que Apple haya entregado.
+  Future<void> _signInWithApple() async {
+    safeSetState(() => _model.appleLoading = true);
+    try {
+      GoRouter.of(context).prepareAuthEvent();
+
+      final user = await authManager.signInWithApple(context);
+      // null = cancelado por la persona o error ya notificado por el manager.
+      if (user == null) {
+        return;
+      }
+
+      _model.appleUserQuery = await UsuariosTable().queryRows(
+        queryFn: (q) => q.eqOrNull(
+          'id',
+          currentUserUid,
+        ),
+      );
+      if (!mounted) return;
+
+      final perfil = _model.appleUserQuery?.firstOrNull;
+
+      if (perfil == null) {
+        // Cuenta de Apple nueva: no hay perfil en `usuarios` todavía.
+        final metadata =
+            SupaFlow.client.auth.currentUser?.userMetadata ?? const {};
+        // Con "Ocultar mi correo" Apple entrega un alias @privaterelay que no
+        // sirve para contactar al talento: se deja el campo vacío para que
+        // escriba uno real en el registro.
+        final correoApple = currentUserEmail;
+        final correoUtilizable =
+            correoApple.toLowerCase().endsWith('@privaterelay.appleid.com')
+                ? ''
+                : correoApple;
+
+        FFAppState().registroExterno = true;
+        FFAppState().updateRegistroStruct((registro) {
+          registro.nombres = metadata['given_name']?.toString() ?? '';
+          registro.apellidos = metadata['family_name']?.toString() ?? '';
+          registro.correo = correoUtilizable;
+        });
+
+        context.pushNamed(Registro1Widget.routeName);
+        return;
+      }
+
+      if (perfil.rol == 'proveedor') {
+        context.goNamedAuth(SplashLoginWidget.routeName, context.mounted);
+      } else {
+        GoRouter.of(context).prepareAuthEvent();
+        await authManager.signOut();
+        GoRouter.of(context).clearRedirectLocation();
+
+        if (!mounted) return;
+        _showLoginError('El usuario no pertenece a Hulp Talentos');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showLoginError('No se pudo iniciar sesión con Apple');
+      }
+    } finally {
+      if (mounted) {
+        safeSetState(() => _model.appleLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Builder(
@@ -589,6 +674,118 @@ class _LoginWidgetState extends State<LoginWidget> {
                             ),
                           ),
                         ),
+                        if (isiOS)
+                          Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                25.0, 24.0, 25.0, 0.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: 1.0,
+                                    color: FlutterFlowTheme.of(context)
+                                        .alternate,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: EdgeInsetsDirectional.fromSTEB(
+                                      12.0, 0.0, 12.0, 0.0),
+                                  child: Text(
+                                    'Otras opciones',
+                                    style: FlutterFlowTheme.of(context)
+                                        .bodySmall
+                                        .override(
+                                          font: GoogleFonts.inter(),
+                                          color: FlutterFlowTheme.of(context)
+                                              .secondaryText,
+                                          letterSpacing: 0.0,
+                                        ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Container(
+                                    height: 1.0,
+                                    color: FlutterFlowTheme.of(context)
+                                        .alternate,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (isiOS)
+                          Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                25.0, 16.0, 25.0, 0.0),
+                            child: InkWell(
+                              splashColor: Colors.transparent,
+                              focusColor: Colors.transparent,
+                              hoverColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              onTap: _model.appleLoading
+                                  ? null
+                                  : () => _signInWithApple(),
+                              child: Container(
+                                width: double.infinity,
+                                height: 48.0,
+                                decoration: BoxDecoration(
+                                  color: FlutterFlowTheme.of(context)
+                                      .secondaryBackground,
+                                  borderRadius: BorderRadius.circular(20.0),
+                                  border: Border.all(
+                                    color: FlutterFlowTheme.of(context)
+                                        .secondaryText,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: _model.appleLoading
+                                      ? [
+                                          SizedBox(
+                                            width: 22.0,
+                                            height: 22.0,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.0,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                FlutterFlowTheme.of(context)
+                                                    .primaryText,
+                                              ),
+                                            ),
+                                          ),
+                                        ]
+                                      : [
+                                          Icon(
+                                            Icons.apple,
+                                            color: FlutterFlowTheme.of(context)
+                                                .primaryText,
+                                            size: 28.0,
+                                          ),
+                                          Padding(
+                                            padding: EdgeInsetsDirectional
+                                                .fromSTEB(8.0, 0.0, 0.0, 0.0),
+                                            child: Text(
+                                              'Continuar con Apple',
+                                              style:
+                                                  FlutterFlowTheme.of(context)
+                                                      .bodyMedium
+                                                      .override(
+                                                        font:
+                                                            GoogleFonts.inter(),
+                                                        color:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .primaryText,
+                                                        letterSpacing: 0.0,
+                                                      ),
+                                            ),
+                                          ),
+                                        ],
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -604,6 +801,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                       hoverColor: Colors.transparent,
                       highlightColor: Colors.transparent,
                       onTap: () async {
+                        // Registro normal: asegura que no quede activo un
+                        // registro con Apple abandonado a medias.
+                        FFAppState().registroExterno = false;
                         context.pushNamed(Registro1Widget.routeName);
                       },
                       child: RichText(

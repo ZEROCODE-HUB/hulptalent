@@ -701,7 +701,7 @@ class _MiperfilWidgetState extends State<MiperfilWidget> {
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     5.0, 0.0, 0.0, 0.0),
                                             child: Text(
-                                              'Desactivar cuenta',
+                                              'Eliminar cuenta',
                                               style: FlutterFlowTheme.of(
                                                       context)
                                                   .bodyMedium
